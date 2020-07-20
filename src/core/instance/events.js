@@ -46,11 +46,17 @@ export function eventsMixin (Vue: Class<Component>) {
   const hookRE = /^hook:/
   Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
     const vm: Component = this
+    // 如果event是一个String数组，也就意味着多个以 event 作为 key 的事件将被添加入 fn 这个回调
     if (Array.isArray(event)) {
+      // 来个 for 循环将 fn 一个一个加到实践中
       for (let i = 0, l = event.length; i < l; i++) {
+        // 递归调一下,其实最终调用的 $on 中的 event 终究是 String 类型
         this.$on(event[i], fn)
       }
-    } else {
+    }
+    // event是一个string时，向 _events[event] 中 push 进去 fn 这个回调函数
+    // 其实就是数据结构中的 HashTable 的链地址法
+    else {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
@@ -64,6 +70,7 @@ export function eventsMixin (Vue: Class<Component>) {
   Vue.prototype.$once = function (event: string, fn: Function): Component {
     const vm: Component = this
     function on () {
+      // 先从_event中销毁，再执行
       vm.$off(event, on)
       fn.apply(vm, arguments)
     }
@@ -74,11 +81,13 @@ export function eventsMixin (Vue: Class<Component>) {
 
   Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
     const vm: Component = this
+    // 不传参数就是全销毁
     // all
     if (!arguments.length) {
       vm._events = Object.create(null)
       return vm
     }
+    // 如果event是一个String数组，也就意味着多个以 event 作为 key 的事件将被销毁
     // array of events
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
@@ -86,6 +95,7 @@ export function eventsMixin (Vue: Class<Component>) {
       }
       return vm
     }
+    // 将以 event 作为 key 的事件数组全部销毁
     // specific event
     const cbs = vm._events[event]
     if (!cbs) {
@@ -95,6 +105,7 @@ export function eventsMixin (Vue: Class<Component>) {
       vm._events[event] = null
       return vm
     }
+    // 如果有 fn 的话，则只销毁这个 fn 回调，而不销毁整个 event
     if (fn) {
       // specific handler
       let cb
@@ -124,6 +135,7 @@ export function eventsMixin (Vue: Class<Component>) {
         )
       }
     }
+    // 从 _events 中取出该 event 事件回调数组，遍历依次执行里面的回调函数
     let cbs = vm._events[event]
     if (cbs) {
       cbs = cbs.length > 1 ? toArray(cbs) : cbs

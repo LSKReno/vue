@@ -196,6 +196,8 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     target.splice(key, 1, val)
     return val
   }
+  // 如果更新的是个对象target，并且该对象包含该key，则直接赋值更新即可
+  // 因为初始化渲染的时候已经监听过了
   if (hasOwn(target, key)) {
     target[key] = val
     return val
